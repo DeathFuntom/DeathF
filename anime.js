@@ -2,7 +2,7 @@
 // @name         AnimeGO Provider for Lampa
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Интеграция animego.one в Lampa с поиском, фильтрацией и выбором озвучки
+// @description  Интеграция animego.one в Lampa с поиском и выбором озвучки
 // @author       Ваше имя
 // @match        *://*/*lampa*  // URL, где работает Lampa
 // @grant        none
@@ -11,68 +11,75 @@
 (function () {
     'use strict';
 
-    // Проверка, загружена ли Lampa
-    if (typeof Lampa !== 'undefined') {
-        // Добавление пункта меню "AnimeGO"
-        Lampa.Menu.add('animego', {
-            title: 'AnimeGO', // Название пункта меню
-            icon: 'https://animego.one/favicon.ico', // Иконка для меню
-            page: 'animego_page' // Страница, которая будет открываться
-        });
+    // Ждем полной загрузки Lampa
+    const checkLampa = setInterval(() => {
+        if (typeof Lampa !== 'undefined') {
+            clearInterval(checkLampa);
 
-        console.log('AnimeGO добавлен в главное меню!');
+            // Добавляем пункт меню
+            Lampa.Menu.add('animego_provider', {
+                title: 'AnimeGO', // Название пункта меню
+                icon: 'https://animego.one/favicon.ico', // Иконка
+                page: 'animego_page', // Страница для открытия
+                priority: 3 // Позиция в меню (1-начало, 10-конец)
+            });
 
-        // Создание страницы для AnimeGO
-        Lampa.Pages.add('animego_page', function () {
-            return {
-                create() {
-                    // Создаем HTML-структуру страницы
-                    this.create_block = $('<div>').addClass('animego-page').html(`
-                        <h1>Добро пожаловать в AnimeGO</h1>
-                        <p>Здесь вы можете искать аниме, выбирать озвучку и смотреть эпизоды.</p>
-                        <input type="text" id="animego-search" placeholder="Поиск аниме..." />
-                        <button id="animego-search-btn">Найти</button>
-                        <div id="animego-results"></div>
-                    `);
+            // Создаем страницу
+            Lampa.Pages.add('animego_page', function () {
+                return {
+                    create() {
+                        // Создаем интерфейс
+                        this.container = $('<div>')
+                            .addClass('animego-page')
+                            .css({ padding: '20px', color: '#fff' })
+                            .html(`
+                                <h2 style="margin-bottom: 20px;">Поиск аниме</h2>
+                                <input 
+                                    type="text" 
+                                    id="animego-search" 
+                                    placeholder="Введите название..." 
+                                    style="
+                                        padding: 8px; 
+                                        width: 80%; 
+                                        margin-bottom: 15px;
+                                        border: 1px solid #444;
+                                        background: #222;
+                                        color: #fff;
+                                    "
+                                />
+                                <button 
+                                    id="animego-search-btn" 
+                                    style="
+                                        padding: 8px 15px;
+                                        background: #007bff;
+                                        border: none;
+                                        color: white;
+                                        cursor: pointer;
+                                    "
+                                >Найти</button>
+                                <div id="animego-results" style="margin-top: 20px;"></div>
+                            `);
 
-                    // Добавляем блок на страницу
-                    this.activity.body.append(this.create_block);
+                        this.activity.body.append(this.container);
 
-                    // Обработчик кнопки поиска
-                    $('#animego-search-btn').on('click', () => {
-                        const query = $('#animego-search').val();
-                        if (query) {
-                            this.searchAnime(query);
-                        }
-                    });
-                },
-                searchAnime(query) {
-                    // Выполняем поиск аниме через API animego.one
-                    fetch(`https://animego.one/api/search?query=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            // Формируем HTML для результатов поиска
-                            const results = data.map(item => `
-                                <div class="animego-item">
-                                    <img src="${item.poster}" alt="${item.title}" />
-                                    <h3>${item.title}</h3>
-                                    <p>${item.genres.join(', ')}</p>
-                                </div>
-                            `).join('');
-
-                            // Вставляем результаты на страницу
-                            $('#animego-results').html(results);
-                        })
-                        .catch(error => {
-                            console.error('Ошибка при поиске:', error);
-                            $('#animego-results').html('<p>Произошла ошибка при поиске.</p>');
+                        // Обработчик поиска
+                        $('#animego-search-btn').on('click', () => {
+                            const query = $('#animego-search').val().trim();
+                            if (query) this.searchAnime(query);
                         });
-                }
-            };
-        });
+                    },
+                    searchAnime(query) {
+                        // Заглушка для демонстрации
+                        $('#animego-results').html(`
+                            <div style="margin: 20px 0; padding: 15px; background: #1a1a1a;">
+                                Здесь будут результаты поиска для: <b>${query}</b>
+                            </div>
+                        `);
+                    }
+                };
+            });
 
-        console.log('AnimeGO Page успешно создан!');
-    } else {
-        console.error('Lampa не найден! Убедитесь, что скрипт запущен в Lampa.');
-    }
+            console.log('AnimeGO загружен!');
+        }
+    }, 500); // Проверяем каждые 0.5 секунды
 })();
