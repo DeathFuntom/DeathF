@@ -1,123 +1,91 @@
 (function() {
-    'use strict';
+  'use strict';
 
-    // Парсинг видео с HQPorner
-    function parseHQPornerVideo(url) {
-        return new Promise((resolve, reject) => {
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const videoElement = doc.querySelector('video');
-                    if (videoElement) {
-                        const videoUrl = videoElement.querySelector('source').getAttribute('src');
-                        resolve(videoUrl);
-                    } else {
-                        reject('Видео не найдено');
-                    }
-                })
-                .catch(error => reject(error));
-        });
+  var Defined = {
+    api: 'lampac',
+    localhost: 'https://hqpornerxxx.com/',
+    apn: 'https://apn.watch/'
+  };
+
+  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+  if (!unic_id) {
+    unic_id = Lampa.Utils.uid(8).toLowerCase();
+    Lampa.Storage.set('lampac_unic_id', unic_id);
+  }
+
+  if (!window.rch) {
+    Lampa.Utils.putScript(["https://rc.bwa.to/invc-rch.js"], function() {}, false, function() {
+      if (!window.rch.startTypeInvoke)
+        window.rch.typeInvoke('https://rc.bwa.to', function() {});
+    }, true);
+  }
+
+  function BlazorNet() {
+    this.net = new Lampa.Reguest();
+    this.timeout = function(time) {
+      this.net.timeout(time);
+    };
+    this.req = function(type, url, success, error, post) {
+      var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
+      var path = url.split(Defined.localhost).pop().split('?');
+      if (path[0].indexOf('http') >= 0) return this.net[type](url, success, error, post, params);
+      DotNet.invokeMethodAsync("JinEnergy", path[0], path[1]).then(function(result) {
+        success(Lampa.Arrays.decodeJson(result, {}));
+      }).catch(function(e) {
+        console.log('Blazor', 'error:', e);
+        error(e);
+      });
+    };
+  }
+
+  function component(object) {
+    var network = new BlazorNet();
+    var scroll = new Lampa.Scroll({ mask: true, over: true });
+    var files = new Lampa.Explorer(object);
+    var filter = new Lampa.Filter(object);
+    var sources = {};
+    var last;
+    var source;
+    var balanser;
+    var initialized;
+    var images = [];
+
+    function searchByTag(tag) {
+      var url = Defined.localhost + 'tags/' + encodeURIComponent(tag);
+      network.req('native', url, function(data) {
+        console.log('Search results:', data);
+      }, function(error) {
+        console.log('Search error:', error);
+      });
     }
 
-    // Поиск по тегам на HQPorner
-    function searchHQPornerByTag(tag) {
-        return new Promise((resolve, reject) => {
-            const searchUrl = `https://hqpornerxxx.com/tags/${encodeURIComponent(tag)}`;
-            fetch(searchUrl)
-                .then(response => response.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const videoElements = doc.querySelectorAll('.video-item');
-                    const results = [];
-
-                    videoElements.forEach(element => {
-                        const title = element.querySelector('.title').textContent.trim();
-                        const url = element.querySelector('a').getAttribute('href');
-                        const thumbnail = element.querySelector('img').getAttribute('src');
-                        results.push({ title, url, thumbnail });
-                    });
-
-                    resolve(results);
-                })
-                .catch(error => reject(error));
-        });
+    function bypassVIP() {
+      Object.defineProperty(window, 'isVIP', { get: function() { return true; } });
+      console.log('VIP features unlocked');
     }
 
-    // Интеграция в метод play
-    function play(element) {
-        if (element.source === 'hqporner') {
-            parseHQPornerVideo(element.url)
-                .then(videoUrl => {
-                    const video = {
-                        title: element.name,
-                        url: videoUrl,
-                        quality: { 'default': videoUrl }
-                    };
-                    Lampa.Player.play(video);
-                })
-                .catch(error => {
-                    Lampa.Noty.show('Ошибка при загрузке видео: ' + error);
-                });
-        } else {
-            // Остальная логика для других источников
-        }
-    }
+    bypassVIP();
+    
+    this.initialize = function() {
+      this.loading(true);
+      filter.onSearch = function(value) {
+        searchByTag(value);
+      };
+      filter.render().find('.selector').on('hover:enter', function() {
+        clearInterval(balanser_timer);
+      });
+      filter.render().find('.filter--search').appendTo(filter.render().find('.torrent-filter'));
+      this.loading(false);
+    };
 
-    // Регистрация плагина
-    Lampa.Plugin.add({
-        name: 'hqporner',
-        title: 'HQPorner Video Parser',
-        version: '1.0.0',
-        icon: '', // Укажите путь к иконке (опционально)
-        init: function() {
-            // Добавление пункта в боковое меню
-            Lampa.Menu.add({
-                name: 'hqporner',
-                title: 'HQPorner',
-                icon: '', // Укажите путь к иконке (опционально)
-                onClick: function() {
-                    Lampa.Activity.push({
-                        url: 'https://hqpornerxxx.com',
-                        title: 'HQPorner',
-                        component: 'sisi_view_' + Defined.use_api,
-                        page: 1
-                    });
-                }
-            });
-
-            // Добавление поиска по тегам в меню
-            Api.menu(function(data) {
-                data.push({
-                    title: 'Поиск по тегам (HQPorner)',
-                    onSelect: function() {
-                        Lampa.Input.edit({
-                            title: 'Введите тег',
-                            value: '',
-                            free: true,
-                            nosave: true
-                        }, function(tag) {
-                            if (tag) {
-                                searchHQPornerByTag(tag)
-                                    .then(results => {
-                                        Lampa.Activity.push({
-                                            url: `https://hqpornerxxx.com/tags/${tag}`,
-                                            title: `Результаты поиска: ${tag}`,
-                                            component: 'sisi_view_' + Defined.use_api,
-                                            results: results,
-                                            page: 1
-                                        });
-                                    })
-                                    .catch(error => {
-                                        Lampa.Noty.show('Ошибка при поиске: ' + error);
-                                    });
-                            }
-                        });
-                    }
-                });
-            });
-        }
-    });
+    this.start = function() {
+      if (!initialized) {
+        initialized = true;
+        this.initialize();
+      }
+      Lampa.Controller.enable('content');
+    };
+  }
+  
+  Lampa.Component.add('hqporner', component);
 })();
