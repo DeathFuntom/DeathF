@@ -73,8 +73,18 @@
     };
   }
 
-  Lampa.Component.add('hqporner', component);
+  // Проверка на наличие компонента и добавление его в систему
+  if (typeof Lampa.Component.add === 'function') {
+    Lampa.Component.add('hqporner', component);
+  } else {
+    console.log('❌ Lampa.Component.add не поддерживается');
+  }
 
-  Lampa.Settings.main().render().find('.settings-container').append(new component().create());
+  // Добавление в меню настроек
+  try {
+    Lampa.Settings.main().render().find('.settings-container').append(new component().create());
+  } catch (error) {
+    console.log('❌ Ошибка при добавлении в меню:', error);
+  }
 
 })();
