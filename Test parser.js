@@ -13,13 +13,6 @@
     Lampa.Storage.set('lampac_unic_id', unic_id);
   }
 
-  if (!window.rch) {
-    Lampa.Utils.putScript(["https://rc.bwa.to/invc-rch.js"], function() {}, false, function() {
-      if (!window.rch.startTypeInvoke)
-        window.rch.typeInvoke('https://rc.bwa.to', function() {});
-    }, true);
-  }
-
   function BlazorNet() {
     this.net = new Lampa.Reguest();
     this.timeout = function(time) {
@@ -40,52 +33,48 @@
 
   function component(object) {
     var network = new BlazorNet();
-    var scroll = new Lampa.Scroll({ mask: true, over: true });
-    var files = new Lampa.Explorer(object);
     var filter = new Lampa.Filter(object);
-    var sources = {};
-    var last;
-    var source;
-    var balanser;
-    var initialized;
-    var images = [];
+    var initialized = false;
 
     function searchByTag(tag) {
       var url = Defined.localhost + 'tags/' + encodeURIComponent(tag);
       network.req('native', url, function(data) {
-        console.log('Search results:', data);
+        console.log('🔍 Search results:', data);
       }, function(error) {
-        console.log('Search error:', error);
+        console.log('❌ Search error:', error);
       });
     }
 
     function bypassVIP() {
       Object.defineProperty(window, 'isVIP', { get: function() { return true; } });
-      console.log('VIP features unlocked');
+      console.log('✅ VIP features unlocked');
     }
 
     bypassVIP();
-    
-    this.initialize = function() {
-      this.loading(true);
-      filter.onSearch = function(value) {
-        searchByTag(value);
-      };
-      filter.render().find('.selector').on('hover:enter', function() {
-        clearInterval(balanser_timer);
+
+    this.create = function() {
+      var html = $('<div class="settings-folder selector"><div class="settings-folder__title">HQPorner Plugin</div></div>');
+      html.on('hover:enter', function() {
+        Lampa.Controller.toggle('content');
       });
-      filter.render().find('.filter--search').appendTo(filter.render().find('.torrent-filter'));
-      this.loading(false);
+      return html;
+    };
+
+    this.initialize = function() {
+      if (!initialized) {
+        initialized = true;
+        console.log("✅ Plugin HQPorner Initialized");
+      }
     };
 
     this.start = function() {
-      if (!initialized) {
-        initialized = true;
-        this.initialize();
-      }
+      this.initialize();
       Lampa.Controller.enable('content');
     };
   }
-  
+
   Lampa.Component.add('hqporner', component);
+
+  Lampa.Settings.main().render().find('.settings-container').append(new component().create());
+
 })();
