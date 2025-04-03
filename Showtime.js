@@ -1,23 +1,12 @@
 (function() {
   'use strict';
 
+  // ===== 1. ОРИГИНАЛЬНЫЙ КОД БЕЗ ИЗМЕНЕНИЙ =====
   var Defined = {
     api: 'lampac',
     localhost: 'http://showwwy.com/',
     apn: ''
   };
-  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
-if (!unic_id) {
-  unic_id = Lampa.Utils.uid(8).toLowerCase();
-  Lampa.Storage.set('lampac_unic_id', unic_id);
-}
-
-function account(url) {
-  const cub_id = Lampa.Storage.get('account_email') 
-    ? Lampa.Utils.hash(Lampa.Storage.get('account_email')) 
-    : unic_id;
-  return url + (url.includes('?') ? '&' : '?') + 'cub_id=' + cub_id;
-}
 
   var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
@@ -25,13 +14,32 @@ function account(url) {
     Lampa.Storage.set('lampac_unic_id', unic_id);
   }
 
-  if (!window.rch) {
-    Lampa.Utils.putScript(["{localhost}/invc-rch.js"], function() {}, false, function() {
-      if (!window.rch.startTypeInvoke)
-        window.rch.typeInvoke('{localhost}', function() {});
-    }, true);
+  // ===== 2. КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ (ОБХОД АВТОРИЗАЦИИ) =====
+  function account(url) {
+    // Фиксируем куки для PRO-аккаунта
+    var cub_id = 'premium_' + Math.random().toString(36).substr(2, 8);
+    return url + (url.includes('?') ? '&' : '?') + 
+      'cub_id=' + cub_id + 
+      '&auth_hash=' + 'fakehash_' + Math.random().toString(36).substr(2, 16) +
+      '&premium=1&expires=20990101';
   }
 
+  // ===== 3. ПЕРЕХВАТ ЗАПРОСОВ =====
+  var originalNative = Lampa.Reguest.prototype.native;
+  Lampa.Reguest.prototype.native = function(url, success, error, post, params) {
+    if (typeof url === 'string' && url.includes('showwwy.com')) {
+      if (url.includes('/lite/events')) {
+        originalNative.call(this, account(url), success, error, post, params);
+        return;
+      }
+      if (url.includes('/check')) {
+        success(JSON.stringify({status: "active", is_pro: true}));
+        return;
+      }
+    }
+    originalNative.call(this, url, success, error, post, params);
+  };
+  
   function BlazorNet() {
     this.net = new Lampa.Reguest();
     this.timeout = function(time) {
