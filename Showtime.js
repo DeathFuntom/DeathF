@@ -6,6 +6,18 @@
     localhost: 'http://showwwy.com/',
     apn: ''
   };
+  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+if (!unic_id) {
+  unic_id = Lampa.Utils.uid(8).toLowerCase();
+  Lampa.Storage.set('lampac_unic_id', unic_id);
+}
+
+function account(url) {
+  const cub_id = Lampa.Storage.get('account_email') 
+    ? Lampa.Utils.hash(Lampa.Storage.get('account_email')) 
+    : unic_id;
+  return url + (url.includes('?') ? '&' : '?') + 'cub_id=' + cub_id;
+}
 
   var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
@@ -236,7 +248,7 @@
           query.push('serial=' + (object.movie.name ? 1 : 0));
           if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
           if (object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
-          var url = Defined.localhost + 'externalids?' + query.join('&');
+          var url = (Defined.localhost + 'externalids?' + query.join('&'));
           network.timeout(10000);
           network.silent(account(url), function(json) {
             for (var name in json) {
